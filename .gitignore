@@ -1,4 +1,5 @@
 obj/*
 versions/*
+.vscode/*
 event_handler_test.exe
 libevent_handler.a
