@@ -1,0 +1,4 @@
+obj/*
+versions/*
+event_handler_test.exe
+libevent_handler.a
