@@ -20,6 +20,7 @@
 #include <chrono>
 #include <atomic>
 
+// use std if aviable
 #if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
     #include <thread>       // use std::thread if it is aviable
     using std::thread;
