@@ -3,6 +3,6 @@ g++ -Wall -O3 -std=c++17 -I./lib/mingw-std-threads-master -I./lib/high_resolutio
 g++ -Wall -O3 -std=c++17 -I./lib/mingw-std-threads-master -c src/event_handler_src.cpp -o obj/event_handler_src.o
 g++ -Wall -O3 -std=c++17 -I./lib/mingw-std-threads-master -c src/listener_src.cpp -o obj/listener_src.o
 
-g++ -o event_handler_test.exe obj/main.o obj/event_handler_src.o obj/listener_src.o -s
+g++ -s -o event_handler_test.exe obj/main.o obj/event_handler_src.o obj/listener_src.o
 
-ar -r libevent_handler.a obj/event_handler_src.o obj/listener_src.o -s
+ar -s -r libevent_handler.a obj/event_handler_src.o obj/listener_src.o

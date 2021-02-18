@@ -1,11 +1,11 @@
 /******************************************************************************************************************************************
 * Title:        Event handler
 * Author:       Michael Reim
-* Date:         20.01.2021
+* Date:         17.02.2021
 * Description:
 *   General purpose library to create and listen to events.
 *
-* @version release 1.2.0
+* @version release 1.3.0
 * @copyright (C) Michael Reim, distribution without my consent is prohibited.
 *
 * If there are any bugs, contact me!
@@ -19,14 +19,15 @@
 #include <list>
 #include <chrono>
 #include <atomic>
+#include <cstdlib>
 
 // use std if aviable
 #if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
     #include <thread>       // use std::thread if it is aviable
-    using std::thread;
+    #include <condition_variable>
 #else
     #include <mingw.thread.h>
-    using mingw_stdthread::thread;
+    #include <mingw.condition_variable.h>
 #endif
 
 /**
@@ -50,23 +51,19 @@ class EventBase
     friend class Listener;
 
 protected:
-    /**
-    *   This method is used as the condition for the event- and reset-call.
-    *   Method must be implemented by the creator of an event.
-    */
-    virtual bool main_condition(void) = 0;
+#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
+    std::condition_variable* cv;
+    void set_cv(std::condition_variable* _cv) noexcept              {this->cv = _cv;}
+#else
+    mingw_stdthread::condition_variable* cv;
+    void set_cv(mingw_stdthread::condition_variable* _cv) noexcept  {this->cv = _cv;}
+#endif
 
     /**
-    *   This method is only used as additional condition for the event-call.
-    *   The purpose of this method is to filter out some actions of events.
+    *   This method is used as the trigger for the event- and reset-call.
     *   Method must be implemented by the creator of an event.
-    * 
-    *   NOTE:   reset_condition = main_condition
-    *           event_condition = main_condition & sub_condition
-    *   
-    *   If the event-call condition should be the same as the reset-call condition, return 'true'.
     */
-    virtual bool sub_condition(void) = 0;
+    virtual bool trigger(void) = 0;
 
     /**
     *   The reset-method defines what should happen if the event gets reset.
@@ -75,8 +72,8 @@ protected:
     virtual void reset(void) = 0;
 
 public:
-    EventBase(void) {}          // constructor
-    virtual ~EventBase(void) {} // destructor
+    EventBase(void)             {this->cv = nullptr;} 
+    virtual ~EventBase(void)    {}
 };
 
 /**
@@ -104,8 +101,20 @@ protected:
     *   @return a list of all instances.
     *   NOTE: You have only access to all instances of ONE SINGLE event class.
     */
-    static const std::list<void*>& get_instances(void)  {return instances;} 
+    static const std::list<void*>& get_instances(void)  {return instances;}
 
+    /**
+     *  This is a method that does some internal working such as notifying condition
+     *  variables.
+     *  This method MUST be called at the end of your push function (or function where you call the event). Otherwise
+     *  your listener will block forever!
+     */
+    void internal(void) 
+    {   
+        if(this->cv != nullptr)
+            this->cv->notify_one();
+    }
+    
 public:
     Event(void)
     {
@@ -140,38 +149,38 @@ protected:
     typedef void(*EventFunc)(const EventBase&);
 
     /**
-    *   This method sets the interval in which the events are queried.
-    *   Method can be used within inheriting classes for initialization purposes.
-    *   @param interval -> Interval in which events are queried.
-    */
-    void set_interval(std::chrono::nanoseconds interval)    {this->listener_interval = interval;}
-
-    /**
     *   Method to register an event-object with a matching event-method.
     *   Method can be used within inheriting classes for initialization purposes.
     *   @param event -> Event-object to register.
     *   @param func -> Event-method to register (function pointer).
     */
-    void register_event(EventBase& event, EventFunc func)   {this->event2func[&event].push_back(func);}
+    void register_event(EventBase& event, EventFunc func);
 
 private:
-    std::map<EventBase*, std::vector<EventFunc>> event2func;
-    thread listener_thread;
-    std::atomic_bool running, thread_working;
-    std::chrono::nanoseconds listener_interval;
+#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
+    std::thread listener_thread;
+    std::condition_variable cv;
+#else
+    mingw_stdthread::thread listener_thread;
+    mingw_stdthread::condition_variable cv;
+#endif
 
-    void start(void);   // starts the listener thread
-    void stop(void);    // stops the listener thread
+    std::map<EventBase*, std::vector<EventFunc>> event2func;
+    std::atomic_bool running;
+
     static void listen(Listener*);  // function that is called within the thread
+    void start(void);               // starts the listener thread
+    void stop(void);                // stops the listener thread
+    bool event_has_happened(EventBase**, std::vector<EventFunc>**) noexcept;
 
 public:
-    Listener(void); // listener runs with full speed as standard
+    Listener(void);
 
-    Listener(const Listener&) = delete;
-    Listener& operator= (const Listener&) = delete;
+    Listener(const Listener&)               = delete;
+    Listener& operator= (const Listener&)   = delete;
 
-    Listener(Listener&&) = delete;
-    Listener& operator= (Listener&&) = delete;
+    Listener(Listener&&)                    = delete;
+    Listener& operator= (Listener&&)        = delete;
 
     virtual ~Listener(void);
 };
@@ -196,11 +205,11 @@ public:
     EventHandler(void);
     EventHandler(ListenerType);
 
-    EventHandler(const EventHandler&) = delete;
-    EventHandler& operator= (const EventHandler&) = delete;
+    EventHandler(const EventHandler&)               = delete;
+    EventHandler& operator= (const EventHandler&)   = delete;
 
-    EventHandler(EventHandler&&) = delete;
-    EventHandler& operator= (EventHandler&&) = delete;
+    EventHandler(EventHandler&&)                    = delete;
+    EventHandler& operator= (EventHandler&&)        = delete;
 
     virtual ~EventHandler(void);
 
