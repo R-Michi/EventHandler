@@ -1,8 +1,8 @@
 #include "../event.h"
 
-EventHandler::EventHandler(void) : EventHandler(ListenerType::DYNAMIC_LISTENER) {}  // default initialization with dynamic listeners
+EventHandler::EventHandler(void) noexcept : EventHandler(ListenerType::DYNAMIC_LISTENER) {}  // default initialization with dynamic listeners
 
-EventHandler::EventHandler(ListenerType lt)
+EventHandler::EventHandler(ListenerType lt) noexcept
 {
     this->running = false;                  // event handler is not running by default
     this->listener_type = lt;

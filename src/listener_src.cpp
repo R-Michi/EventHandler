@@ -7,7 +7,7 @@
     #include <mingw.mutex.h>
 #endif
 
-Listener::Listener(void)
+Listener::Listener(void) noexcept
 {
     this->running = false;      // thread is not running at constructor
 }

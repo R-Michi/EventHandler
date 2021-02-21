@@ -1,8 +1,10 @@
+/** The example demonstrates the intended usage of this event handler. */
+
 #include <iostream>
 #include <deque>
-#include <conio.h>
-#include <chrono>
-#include <windows.h>
+#include <chrono>   
+#include <conio.h>  // only works on windows
+
 #include "event.h"
 
 /**
@@ -19,12 +21,8 @@ private:
 
 protected:
     /**
-     *  Main condition: The condition that an event happened is if something is in the
-     *  event queue. The same condition counts for the reset call because the elemnt must be
-     *  removed after the call to the event-method.
-     *  NOTE: If the element can't be removed, the event-handler won't work!!!
-     *        First, the event-method will be called in an endless loop.
-     *        Second, the queue will fill up and won't accept any new events, if there is a limit.
+     *  The condition that an event happened is if something is in the
+     *  event queue.
      */
     virtual bool trigger(void)
     {
@@ -38,6 +36,7 @@ protected:
      */
     virtual void reset(void)
     {
+        // Synchronization made by the creator of this event
         this->m.lock();
         this->event_queue.pop_front();
         this->m.unlock();
@@ -46,21 +45,26 @@ protected:
 public:
     /**
      *  The push method iterates through every event-object and pushes the event-data into their queues.
-     *  In this case a character, read from the keyboard, is pushed into the event-object's queues.
+     *  In this case a character, read from the keyboard, is pushed into the event-object's queue.
      *  This method must be STATIC as it iterates through every instance of this event.
      *  The internal method must be called that the event handler can work properly.
      */
     static void push(char c)
     {
+        // Iterate through every event...
         for(void* instance : get_instances())
         {
-            KeyEvent* event = (KeyEvent*)instance;
+            // cast void* to pointer of event class
+            KeyEvent* event = static_cast<KeyEvent*>(instance);
+            // queue a maximum of 4 events (only as example)
             if(event->event_queue.size() < 4)
             {
+                // Synchronization made by the creator of this event
                 event->m.lock();
                 event->event_queue.push_back(c);
                 event->m.unlock();
             }
+            // a call to the internal method (must be done for every event instance)
             event->internal();
         }
     }
@@ -89,8 +93,9 @@ protected:
     // register the events with their matching event-methods
     void init(void)
     {
-        this->register_event(key_event1, (Listener::EventFunc)on_keybd1);
-        this->register_event(key_event2, (Listener::EventFunc)on_keybd2);
+        // cast method to Listener::EventFunc
+        this->register_event(key_event1, reinterpret_cast<Listener::EventFunc>(on_keybd1));
+        this->register_event(key_event2, reinterpret_cast<Listener::EventFunc>(on_keybd2));
     }
 
 public:
@@ -119,21 +124,26 @@ public:
 class MyListener2 : public Listener
 {
 private:
+    // declare as many events you want
     KeyEvent key_event1;
 
 protected:
+    // register the events with their matching event-methods
     virtual void init(void)
     {
-        this->register_event(key_event1, (Listener::EventFunc)on_keybd1);
-        this->register_event(key_event1, (Listener::EventFunc)on_keybd2);
+        // cast method to Listener::EventFunc
+        this->register_event(key_event1, reinterpret_cast<Listener::EventFunc>(on_keybd1));
+        this->register_event(key_event1, reinterpret_cast<Listener::EventFunc>(on_keybd2));
     }
 
 public:
+    // the registration process must take place in the constructor
     MyListener2(void)
     {
         this->init();
     }
 
+    // create as many event methods you want, multiple per event-object are allowed
     static void on_keybd1(KeyEvent& event)
     {
         std::cout << "From Listener 2 / Function 1: " << event.get_char() << std::endl;
@@ -145,32 +155,44 @@ public:
     }
 };
 
+/*
+*   Initialize the event handler:
+*   Create the listener objects and add it to the handler.
+*/
 void init_event_handler(EventHandler& handler)
 {
+    /*  In this example dynamic listeners are used.
+        You can also use static listeners. */
     Listener* my_listener = new MyListener();
     Listener* my_listener2 = new MyListener2();
+
+    // add listeners to the event handler
     handler.add_listener(my_listener);
     handler.add_listener(my_listener2);
 }
 
+// its showtime
 int main()
 {
-    EventHandler event_handler;
-    init_event_handler(event_handler);
-    event_handler.start();
+    EventHandler event_handler(ListenerType::DYNAMIC_LISTENER); // create event handler
+    init_event_handler(event_handler);                          // initialize event handler
+    event_handler.start();                                      // start event handler
     std::cout << "handler started" << std::endl;
+
+    /** Initialize and/or do other stuff that uses the event handler. */
 
     char c = 0;
     while(c != 27)
     {
-        c = getch();
-        if(c != 27)
-            KeyEvent::push(c);
+        c = getch();            // If caracter was received...
+        if(c != 27)             // and its not ESC...
+            KeyEvent::push(c);  // call the KeyEvent.
     }
 
+    // stop and cleanup is also dont by the destructor
     event_handler.stop();
     event_handler.cleanup();
 
     std::cout << "handler stopped" << std::endl;
-    return 0;
+    return 0;   // you have been terminated
 }
