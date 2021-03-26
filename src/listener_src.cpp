@@ -1,11 +1,5 @@
 #include "../event.h"
-
-// use std if aviable
-#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
-    #include <mutex>       // use std::thread if it is aviable
-#else
-    #include <mingw.mutex.h>
-#endif
+#include <mutex>
 
 Listener::Listener(void) noexcept
 {
@@ -22,12 +16,7 @@ void Listener::start(void)
     if(!this->running)          // only start listener if listener is not already running
     {
         this->running = true;   // set listener thread in running state
-// start thread, use std if possible
-#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
-        this->listener_thread = std::thread(listen, this);
-#else
-        this->listener_thread = mingw_stdthread::thread(listen, this);
-#endif
+        this->listener_thread = std::thread(listen, this);  // start listener thread
     }
 }
 
@@ -67,14 +56,9 @@ void Listener::register_event(EventBase& event, EventFunc func)
 
 void Listener::listen(Listener* l)
 {
-// use std if possible
-#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
-        std::mutex mtx;
-        std::unique_lock<std::mutex> lk(mtx);
-#else
-        mingw_stdthread::mutex mtx;
-        mingw_stdthread::unique_lock<mingw_stdthread::mutex> lk(mtx);
-#endif
+    std::mutex mtx;
+    std::unique_lock<std::mutex> lk(mtx);
+
     while(l->running)   
     {
         // wait until event has happened or listener stopps

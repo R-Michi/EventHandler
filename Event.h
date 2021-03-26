@@ -22,19 +22,8 @@
 #include <vector>   // for std::vector
 #include <list>     // for std::list
 #include <atomic>   // for atomic memory
-
-/*  std::thread, std::mutex, std::condition_variable, etc. is not supported at the mingw compiler.
-*   However, there is a library that implements these missing things with the exact same functionality.
-*   Library can be found here: https://github.com/meganz/mingw-std-threads
-*   If std::thread, etc. is aviable, use it instead the mingw implementaion.
-*/
-#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
-    #include <thread>
-    #include <condition_variable>
-#else
-    #include <mingw.thread.h>
-    #include <mingw.condition_variable.h>
-#endif
+#include <thread>
+#include <condition_variable>
 
 /**
  *  enum: ListenerType
@@ -56,13 +45,8 @@ class EventBase
     friend class Listener;
 
 protected:
-#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
     std::condition_variable* cv;
     void set_cv(std::condition_variable* _cv) noexcept              {this->cv = _cv;}
-#else
-    mingw_stdthread::condition_variable* cv;
-    void set_cv(mingw_stdthread::condition_variable* _cv) noexcept  {this->cv = _cv;}
-#endif
 
     /**
     *   This method is used as the trigger for the event-call.
@@ -156,13 +140,8 @@ protected:
     void register_event(EventBase& event, EventFunc func);
 
 private:
-#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
     std::thread listener_thread;
     std::condition_variable cv;
-#else
-    mingw_stdthread::thread listener_thread;
-    mingw_stdthread::condition_variable cv;
-#endif
 
     std::map<EventBase*, std::vector<EventFunc>> event2func;    // address of an event is unique
     std::atomic_bool running;

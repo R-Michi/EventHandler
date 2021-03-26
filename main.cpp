@@ -1,5 +1,4 @@
 /** The example demonstrates the intended usage of this event handler. */
-
 #include <iostream>
 #include <deque>
 #include <chrono>   
@@ -17,7 +16,7 @@ private:
     // Create an event-queue to be able to queue multiple event inputs,
     // needed for the case if the event listener can't keep up.
     std::deque<char> event_queue;
-    mingw_stdthread::mutex m;
+    std::mutex m;
 
 protected:
     /**
@@ -174,7 +173,7 @@ void init_event_handler(EventHandler& handler)
 // its showtime
 int main()
 {
-    EventHandler event_handler(ListenerType::DYNAMIC_LISTENER); // create event handler
+    EventHandler event_handler(ListenerType::DYNAMIC_LISTENER); // create event handler 
     init_event_handler(event_handler);                          // initialize event handler
     event_handler.start();                                      // start event handler
     std::cout << "handler started" << std::endl;
@@ -184,6 +183,7 @@ int main()
     char c = 0;
     while(c != 27)
     {
+        // getch is deprecated
         c = getch();            // If caracter was received...
         if(c != 27)             // and its not ESC...
             KeyEvent::push(c);  // call the KeyEvent.
