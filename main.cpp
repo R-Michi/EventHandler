@@ -36,9 +36,12 @@ protected:
     virtual void reset(void)
     {
         // Synchronization made by the creator of this event
-        this->m.lock();
-        this->event_queue.pop_front();
-        this->m.unlock();
+        if (this->event_queue.size() > 0)
+        {
+            this->m.lock();
+            this->event_queue.pop_front();
+            this->m.unlock();
+        }
     }
 
 public:
@@ -145,12 +148,12 @@ public:
     // create as many event methods you want, multiple per event-object are allowed
     static void on_keybd1(KeyEvent& event)
     {
-        std::cout << "From Listener 2 / Function 1: " << event.get_char() << std::endl;
+        //std::cout << "From Listener 2 / Function 1: " << event.get_char() << std::endl;
     }
 
     static void on_keybd2(KeyEvent& event)
     {
-        std::cout << "From Listener 2 / Function 2: " << event.get_char() << std::endl;
+        //std::cout << "From Listener 2 / Function 2: " << event.get_char() << std::endl;
     }
 };
 

@@ -11,7 +11,7 @@
 *   Note that the creator of the library does not guarantee full functionality at improper use.
 *   How to use the event handler the intended way, have a look at the documentation.
 *
-* @version release 1.3.1
+* @version release 1.3.2
 * @copyright (C) Michael Reim, distribution without my consent is prohibited.
 ******************************************************************************************************************************************/
 

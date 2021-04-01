@@ -40,6 +40,7 @@ bool Listener::event_has_happened(EventBase** ret_event, std::vector<EventFunc>*
             *ret_functions = &iter->second; // return functions to be called
             return true;                    // return true if one event has been triggered
         }
+        iter->first->reset();
     }
 
     // if no event has been triggered return nullptr and false respectively
